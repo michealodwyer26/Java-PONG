@@ -1,0 +1,191 @@
+package screens;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Texture;
+import com.pong.PongGame;
+
+import screens.MainMenuScreen;
+
+import entities.Paddle;
+import entities.Ball;
+
+
+public class MainGameScreen implements Screen {
+	public static final float PADDLE_ANIMATION_SPEED = 0.5f;
+	public static final int PADDLE_WIDTH_PIXEL = 20;
+	public static final int PADDLE_HEIGHT_PIXEL = 100;
+	
+	public static final int PADDLE_WIDTH = PADDLE_WIDTH_PIXEL * 3;
+	public static final int PADDLE_HEIGHT = PADDLE_HEIGHT_PIXEL * 3;
+	
+	PongGame game;
+	
+	Paddle myPaddle;
+	Paddle PCPaddle;
+	Ball GameBall;
+	
+	Rectangle myPaddleRect;
+	Rectangle PCPaddleRect;
+	Rectangle GameBallRect;
+	
+	Texture divider;
+	
+	Paddle[] paddles;
+	Rectangle[] paddleRectangles;
+	
+	BitmapFont font;
+	
+	Sound pointLossSound;
+	Sound pointWonSound;
+	
+	public MainGameScreen(PongGame game) {
+		this.game = game;
+		
+		myPaddle = new Paddle(false);
+		PCPaddle = new Paddle(true);
+		GameBall = new Ball();
+		
+		// Make Paddle array
+		paddles = new Paddle[2];
+		paddles[0] = myPaddle;
+		paddles[1] = PCPaddle;
+		
+		// Make Rectangles for Sprite Collision
+		myPaddleRect = new Rectangle(myPaddle.x, myPaddle.y, ((float) myPaddle.WIDTH), ((float) myPaddle.HEIGHT));
+		PCPaddleRect = new Rectangle(PCPaddle.x, PCPaddle.y, ((float) PCPaddle.WIDTH), ((float) PCPaddle.HEIGHT));
+		GameBallRect = new Rectangle(GameBall.x, GameBall.y, ((float) GameBall.WIDTH), ((float) GameBall.HEIGHT));
+		
+		
+		// Make Paddle Rectangles Array for Sprite Collision Detection
+		paddleRectangles = new Rectangle[2];
+		paddleRectangles[0] = myPaddleRect;
+		paddleRectangles[1] = PCPaddleRect;
+		
+		// Reset the speed values and lock variable
+		game.speed = 0;
+		PCPaddle.locked = false;
+		
+		// Make font and get divider texture
+		font = new BitmapFont(Gdx.files.internal("MediumFont\\MediumEmulogic.fnt"), false);
+		divider = new Texture("divider.png");
+		// Sounds
+		pointLossSound = Gdx.audio.newSound(Gdx.files.internal("audio1.wav"));
+		pointWonSound = Gdx.audio.newSound(Gdx.files.internal("point_sound.wav"));
+		
+	}
+	@Override
+	public void show() {
+	}
+
+	@Override
+	public void render(float delta) {
+		// Update paddles and their rectangles
+		for (Paddle paddle : paddles) {
+			paddle.update(delta, paddleRectangles, GameBall, game);
+		}
+
+		// Update Paddle Rectangles
+		Paddle.updateRects(myPaddle, myPaddleRect);
+		Paddle.updateRects(PCPaddle, PCPaddleRect);
+		
+		
+		// Update ball and ball rectangle
+		GameBall.update(delta, paddleRectangles, GameBallRect, myPaddle, game);
+		
+		// Point Won
+		if (GameBall.x + GameBall.WIDTH > PongGame.WIDTH) {
+			GameBall.X_SPEED = 0;
+			GameBall.Y_SPEED = 0;
+			
+			pointWonSound.play();
+			
+			game.user_points += 1;
+			game.user_points_string = "" + game.user_points;
+			
+			// Check for a win
+			if (game.user_points >= 11) {
+				game.setScreen((Screen) new MainMenuScreen(game));
+			}
+			else {
+				game.setScreen((Screen) new MainGameScreen(game));
+			}
+		}
+		
+		// Point Lost
+		if (GameBall.x < 0) {
+			GameBall.X_SPEED = 0;
+			GameBall.Y_SPEED = 0;
+			
+			pointLossSound.play();
+			
+			game.pc_points += 1;
+			game.pc_points_string = "" + game.pc_points;
+			
+			// Check for a loss
+			if (game.pc_points >= 11) {
+				game.setScreen((Screen) new MainMenuScreen(game));
+			}
+			else {
+				game.setScreen((Screen) new MainGameScreen(game));
+			}
+		}
+		
+		// Update the speed
+		game.speed_string = "Speed: " + game.speed;
+		
+		// Render 
+		Gdx.gl.glClearColor(0, 0, 0, 0);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		
+		game.batch.begin();
+		
+		for (Paddle paddle : paddles) {
+			paddle.render(game.batch);
+		}
+		
+		font.draw(game.batch, game.user_points_string, 150, PongGame.HEIGHT - 25);
+		font.draw(game.batch, game.pc_points_string, PongGame.WIDTH - 150, PongGame.HEIGHT - 25);
+		font.draw(game.batch, game.speed_string, 25, 25);
+		
+		// Draw divider
+		for (int i = 0 ; i < 32 ; i++ ) {
+			game.batch.draw(divider, PongGame.WIDTH/2 + 15, i * PongGame.HEIGHT/32);
+		}
+		
+		
+		GameBall.render(game.batch);
+		
+		game.batch.end();
+	}
+
+	@Override
+	public void resize(int width, int height) {
+		
+	}
+
+	@Override
+	public void pause() {
+		
+	}
+
+	@Override
+	public void resume() {
+		
+	}
+
+	@Override
+	public void hide() {
+		
+	}
+
+	@Override
+	public void dispose() {
+		
+	}
+
+}
